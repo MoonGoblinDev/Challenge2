@@ -1,0 +1,43 @@
+import Foundation
+import SwiftUI
+
+enum Constants {
+    // App information
+    static let appName = "Tennis Game Host"
+    static let appVersion = "1.0.0"
+    
+    // Network configuration
+    static let serviceType = "tennis-game"
+    static let maxPlayers = 4
+    static let connectionTimeout: TimeInterval = 30
+    
+    // UI Configuration
+    struct UI {
+        // Colors
+        static let tileBorderColor = Color.gray.opacity(0.3)
+        static let backgroundColor = Color(NSColor.windowBackgroundColor)
+        static let accentColor = Color.blue
+        
+        // Layout
+        static let tileCornerRadius: CGFloat = 10
+        static let contentPadding: CGFloat = 20
+        static let tilePadding: CGFloat = 16
+        static let standardSpacing: CGFloat = 20
+        
+        // Animations
+        static let standardAnimation = Animation.easeInOut(duration: 0.3)
+    }
+    
+    // Demo data for development/testing
+    struct Demo {
+        static let gyroUpdateInterval: TimeInterval = 0.5
+        
+        static func randomGyroData() -> GyroData {
+            return GyroData(
+                x: Double.random(in: -1.0...1.0),
+                y: Double.random(in: -1.0...1.0),
+                z: Double.random(in: -1.0...1.0)
+            )
+        }
+    }
+}
