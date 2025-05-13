@@ -102,6 +102,7 @@ class ConnectionManager: NSObject, ObservableObject {
     
     // Process received gyro data
     private func processReceivedGyroData(_ data: Data, from peerID: MCPeerID) {
+        //logger.info("Received gyro data from \(peerID.displayName)")
         do {
             let gyroData = try JSONDecoder().decode(GyroData.self, from: data)
             
@@ -129,12 +130,14 @@ extension ConnectionManager: MCSessionDelegate {
                     self.players[index].peerID = peerID
                     self.players[index].deviceName = peerID.displayName
                     self.players[index].connectionState = .connected
+                    self.logger.info("Connected \(peerID) \(peerID.displayName)  \(state.rawValue)")
                 }
             case .connecting:
                 if let index = self.findAvailablePlayerSlot() {
-                    self.players[index].peerID = peerID
-                    self.players[index].deviceName = peerID.displayName
-                    self.players[index].connectionState = .connecting
+//                    self.players[index].peerID = peerID
+//                    self.players[index].deviceName = peerID.displayName
+//                    self.players[index].connectionState = .connecting
+                    self.logger.info("Connecting \(peerID) \(peerID.displayName)  \(state.rawValue)")
                 }
             case .notConnected:
                 // Find the disconnected player and update state
