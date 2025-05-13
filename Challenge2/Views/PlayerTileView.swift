@@ -1,10 +1,20 @@
+// Challenge2/Views/PlayerTileView.swift
 import SwiftUI
 
 struct PlayerTileView: View {
     @ObservedObject var player: Player
     
+    // Define normalization ranges for different data types.
+    // Rotation rates (rad/s) might be around -7 to 7 (approx +/- 400 deg/s) for quick movements.
+    // Acceleration (Gs) for user input, after gravity compensation, might be +/- 2G or more.
+    // Attitude (radians): roll/yaw (-pi to pi), pitch (-pi/2 to pi/2).
+    private let rotationRange: (min: Double, max: Double) = (-7.0, 7.0)
+    private let accelerationRange: (min: Double, max: Double) = (-2.5, 2.5) // Gs
+    private let rollYawRange: (min: Double, max: Double) = (-Double.pi, Double.pi)
+    private let pitchRange: (min: Double, max: Double) = (-Double.pi / 2, Double.pi / 2)
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) { // Reduced spacing
             // Title row with player number and connection status
             HStack {
                 Text("Player \(player.playerNumber)")
@@ -13,51 +23,91 @@ struct PlayerTileView: View {
                 
                 Spacer()
                 
-                // Connection status indicator
                 ConnectionStatusIndicator(state: player.connectionState)
             }
             
             Divider()
             
-            // Device information
             Group {
                 Text("Device:")
-                    .font(.subheadline)
+                    .font(.caption) // Slightly smaller
                     .foregroundColor(.secondary)
                 
                 Text(player.deviceName.isEmpty ? "Not Connected" : player.deviceName)
-                    .font(.body)
+                    .font(.caption) // Slightly smaller
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
+            .padding(.bottom, 2)
             
-            Spacer()
-                .frame(height: 8)
-            
-            // Gyro data display
-            Group {
-                Text("Gyro Data:")
+            // Motion data display
+            VStack {
+                Text("Motion Data:")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 if player.connectionState == .connected {
-                    Text(player.currentGyroData.formattedValues)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(2)
-                    
-                    // Visual representation of gyro data
-                    GyroVisualizer(gyroData: player.currentGyroData)
-                        .frame(height: 40)
-                        .padding(.top, 4)
-                } else {
+                    ScrollView(.vertical, showsIndicators: true) { // Allow scrolling if content overflows
+                        Text(player.currentGyroData.formattedValues)
+                            .font(.system(.caption, design: .monospaced))
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion
+                            .padding(.bottom, 4)
+                        
+                        VStack(alignment: .leading, spacing: 2) { // Reduced spacing
+                            Text("Rotation (rad/s)")
+                                .font(.caption2).foregroundColor(.gray)
+                            DataVisualizer(
+                                value1: player.currentGyroData.rotationX,
+                                value2: player.currentGyroData.rotationY,
+                                value3: player.currentGyroData.rotationZ,
+                                labels: ("RX","RY","RZ"),
+                                colors: (.red, .green, .blue),
+                                ranges: (rotationRange, rotationRange, rotationRange)
+                            )
+                            .frame(height: 25) // Reduced height
+                            
+                            Text("Acceleration (Gs)")
+                                .font(.caption2).foregroundColor(.gray)
+                                .padding(.top, 2)
+                            DataVisualizer(
+                                value1: player.currentGyroData.accelerationX,
+                                value2: player.currentGyroData.accelerationY,
+                                value3: player.currentGyroData.accelerationZ,
+                                labels: ("AX","AY","AZ"),
+                                colors: (.orange, .purple, .yellow),
+                                ranges: (accelerationRange, accelerationRange, accelerationRange)
+                            )
+                            .frame(height: 25)
+                            
+                            Text("Attitude (rad)")
+                                .font(.caption2).foregroundColor(.gray)
+                                .padding(.top, 2)
+                            DataVisualizer(
+                                value1: player.currentGyroData.roll,
+                                value2: player.currentGyroData.pitch,
+                                value3: player.currentGyroData.yaw,
+                                labels: ("Roll","Pitch","Yaw"),
+                                colors: (.cyan, .orange, .brown),
+                                ranges: (rollYawRange, pitchRange, rollYawRange)
+                            )
+                            .frame(height: 25)
+                        }
+                    }
+                    .frame(maxHeight: .infinity) // Allow ScrollView to take available space
+                     
+                }
+                else {
                     Text("No data available")
-                        .font(.body)
+                        .font(.caption) // Slightly smaller
                         .foregroundColor(.secondary)
                         .italic()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 }
             }
+            .frame(maxHeight: .infinity) // Allow motion data group to expand
         }
-        .padding()
+        .padding(10) // Reduced padding
         .background(Color(NSColor.windowBackgroundColor))
         .cornerRadius(10)
         .overlay(
@@ -105,20 +155,22 @@ struct ConnectionStatusIndicator: View {
     }
 }
 
-struct GyroVisualizer: View {
-    var gyroData: GyroData
-    
+// Renamed GyroVisualizer to DataVisualizer for generality
+struct DataVisualizer: View {
+    var value1: Double
+    var value2: Double
+    var value3: Double
+    var labels: (String, String, String)
+    var colors: (Color, Color, Color)
+    // Takes a tuple of ranges, one for each bar
+    var ranges: ((min: Double, max: Double), (min: Double, max: Double), (min: Double, max: Double))?
+
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 2) {
-                // X-axis indicator
-                BarIndicator(value: gyroData.x, label: "X", color: .red, width: geometry.size.width / 3 - 2)
-                
-                // Y-axis indicator
-                BarIndicator(value: gyroData.y, label: "Y", color: .green, width: geometry.size.width / 3 - 2)
-                
-                // Z-axis indicator
-                BarIndicator(value: gyroData.z, label: "Z", color: .blue, width: geometry.size.width / 3 - 2)
+                BarIndicator(value: value1, label: labels.0, color: colors.0, width: geometry.size.width / 3 - 2, range: ranges?.0)
+                BarIndicator(value: value2, label: labels.1, color: colors.1, width: geometry.size.width / 3 - 2, range: ranges?.1)
+                BarIndicator(value: value3, label: labels.2, color: colors.2, width: geometry.size.width / 3 - 2, range: ranges?.2)
             }
         }
     }
@@ -129,58 +181,38 @@ struct BarIndicator: View {
     var label: String
     var color: Color
     var width: CGFloat
-    
+    var range: (min: Double, max: Double)? // Optional custom range for normalization
+
     private var normalizedValue: Double {
-        // Normalize value to range between 0 and 1 (assuming gyro data range of -1 to 1)
-        return (value + 1) / 2
+        let minVal = range?.min ?? -1.0 // Default range -1 to 1 if not specified
+        let maxVal = range?.max ?? 1.0
+        
+        guard maxVal > minVal else { return 0.5 } // Avoid division by zero or invalid range, default to middle
+        
+        let clampedValue = max(minVal, min(value, maxVal)) // Clamp value to the defined range
+        return (clampedValue - minVal) / (maxVal - minVal) // Normalize to 0-1 range
     }
     
     var body: some View {
-        VStack(spacing: 2) {
-            // The bar
+        VStack(spacing: 1) { // Reduced spacing
             GeometryReader { geometry in
                 ZStack(alignment: .bottom) {
-                    // Background
                     RoundedRectangle(cornerRadius: 2)
                         .fill(color.opacity(0.2))
                         .frame(height: geometry.size.height)
                     
-                    // Value bar
                     RoundedRectangle(cornerRadius: 2)
                         .fill(color)
                         .frame(height: CGFloat(normalizedValue) * geometry.size.height)
                 }
             }
             
-            // Label
             Text(label)
-                .font(.system(size: 10))
+                .font(.system(size: 8)) // Smaller label
                 .foregroundColor(color)
         }
         .frame(width: width)
     }
 }
 
-// Preview provider
-struct PlayerTileView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Connected player
-            PlayerTileView(player: Player.samplePlayers()[0])
-                .frame(width: 250, height: 200)
-                .previewDisplayName("Connected Player")
-            
-            // Connecting player
-            PlayerTileView(player: Player.samplePlayers()[3])
-                .frame(width: 250, height: 200)
-                .previewDisplayName("Connecting Player")
-            
-            // Disconnected player
-            PlayerTileView(player: Player.samplePlayers()[2])
-                .frame(width: 250, height: 200)
-                .previewDisplayName("Disconnected Player")
-        }
-        .padding()
-        .background(Color(.windowBackgroundColor))
-    }
-}
+

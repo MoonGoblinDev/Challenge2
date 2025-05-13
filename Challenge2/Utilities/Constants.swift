@@ -28,16 +28,4 @@ enum Constants {
         static let standardAnimation = Animation.easeInOut(duration: 0.3)
     }
     
-    // Demo data for development/testing
-    struct Demo {
-        static let gyroUpdateInterval: TimeInterval = 0.5
-        
-        static func randomGyroData() -> GyroData {
-            return GyroData(
-                x: Double.random(in: -1.0...1.0),
-                y: Double.random(in: -1.0...1.0),
-                z: Double.random(in: -1.0...1.0)
-            )
-        }
-    }
 }
